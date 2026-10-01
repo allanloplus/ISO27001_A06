@@ -1,0 +1,4 @@
+node_modules
+build/lines/
+build/narration.wav
+__pycache__/

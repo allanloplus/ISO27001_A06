@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>8.9 組態管理動畫課</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&family=Noto+Sans+TC:wght@400;700;900&family=LXGW+WenKai+TC:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: 1280×720 舞台（影片畫面）＋下方播放控制列；舞台是單一亮色教室世界，外框跟隨深淺主題 */
+:root {
+  --ink: #1d2a4a;        /* 深藍墨色：文字、外框 */
+  --mint: #5fd9ae;       /* 原圖綠色泡泡 */
+  --sky: #bcd6f0;        /* 原圖藍色泡泡 */
+  --amber: #f6b73c;      /* 重點、流程箭頭 */
+  --coral: #ef5d5d;      /* 缺失、警示 */
+  --paper: #fbfaf4;      /* 舞台底色 */
+  --allan: #2b4c9a;      /* Allan 字幕色 */
+  --arale: #c2378f;      /* 阿拉蕾字幕色 */
+
+  --f-display: "Huninn", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "WenQuanYi Zen Hei", sans-serif;
+  --f-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "WenQuanYi Zen Hei", sans-serif;
+  --f-hand: "LXGW WenKai TC", "Kaiti TC", "DFKai-SB", "Noto Sans TC", serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  /* 外框（非舞台）主題 tokens */
+  --bg: #eef1f6;
+  --fg: #1d2a4a;
+  --muted: #5b6785;
+  --panel: #ffffff;
+  --line: #d5dbe8;
+  --accent: #2b4c9a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #10162a; --fg: #e6eaf5; --muted: #9aa5c4; --panel: #1a2240; --line: #2c3760; --accent: #8fb0ff; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #10162a; --fg: #e6eaf5; --muted: #9aa5c4; --panel: #1a2240; --line: #2c3760; --accent: #8fb0ff; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-body); padding-inline: 16px; padding-block: 16px 32px; }
+.wrap { max-width: 1280px; margin: 0 auto; display: grid; gap: 12px; }
+header.page { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+header.page h1 { font-family: var(--f-display); font-size: 1.5rem; margin: 0; font-weight: 400; text-wrap: balance; }
+header.page p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+/* ---------- 舞台 ---------- */
+.viewport { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; overflow: hidden; border-radius: 14px; background: var(--paper); box-shadow: 0 6px 30px rgba(20, 30, 60, .18); }
+#stage { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; overflow: hidden; color: var(--ink); font-family: var(--f-body);
+  background:
+    radial-gradient(circle at 1px 1px, rgba(29, 42, 74, .09) 1.2px, transparent 1.6px) 0 0 / 28px 28px,
+    linear-gradient(180deg, #fbfaf4 0%, #f3f6fb 100%); }
+.topbar { position: absolute; left: 0; right: 0; top: 0; height: 58px; display: flex; align-items: center; gap: 14px; padding: 0 28px; background: var(--ink); color: #fff; z-index: 5; }
+.topbar .ctl { font-family: var(--f-mono); font-size: 15px; background: var(--amber); color: var(--ink); padding: 4px 10px; border-radius: 6px; font-weight: 500; }
+.topbar .std { font-size: 15px; opacity: .8; letter-spacing: .04em; }
+.topbar .sec { margin-left: auto; font-family: var(--f-display); font-size: 20px; padding: 4px 16px; border-radius: 999px; background: rgba(255, 255, 255, .12); }
+.topbar .sec.p1 { background: var(--mint); color: var(--ink); }
+.topbar .sec.p2 { background: var(--sky); color: var(--ink); }
+.topbar .sec.p3 { background: var(--coral); color: #fff; }
+.topbar .sec.case { background: var(--amber); color: var(--ink); }
+.topbar .num { font-family: var(--f-mono); font-size: 14px; opacity: .7; font-variant-numeric: tabular-nums; }
+.pbar { position: absolute; left: 0; top: 58px; height: 4px; background: var(--amber); width: 0; z-index: 5; }
+
+.scene { position: absolute; left: 0; top: 58px; width: 1280px; height: 662px; display: none; }
+.scene.on { display: block; }
+.content { position: absolute; left: 44px; top: 26px; width: 820px; height: 520px; }
+h2.st { font-family: var(--f-display); font-weight: 400; font-size: 40px; margin: 0 0 18px; line-height: 1.15; }
+h2.st small { display: block; font-family: var(--f-body); font-size: 16px; font-weight: 700; color: #6a7594; letter-spacing: .08em; margin-bottom: 4px; }
+.abs { position: absolute; }
+[data-in] { will-change: transform, opacity; }
+
+/* 共用元件 */
+.card { background: #fff; border: 2.5px solid var(--ink); border-radius: 16px; padding: 14px 18px; box-shadow: 4px 5px 0 var(--ink); }
+.chip { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; border: 2px solid var(--ink); background: #fff; font-weight: 700; font-size: 19px; }
+.chip.mint { background: var(--mint); } .chip.sky { background: var(--sky); } .chip.amber { background: var(--amber); } .chip.coral { background: var(--coral); color: #fff; }
+.tag { font-family: var(--f-mono); font-size: 14px; color: #6a7594; }
+.hl { box-shadow: 0 0 0 5px var(--amber), 4px 5px 0 var(--ink) !important; }
+.stamp { font-family: var(--f-display); font-size: 34px; color: var(--coral); border: 5px solid var(--coral); border-radius: 12px; padding: 4px 16px; background: rgba(255, 255, 255, .85); white-space: nowrap; }
+.hand { font-family: var(--f-hand); }
+.mono { font-family: var(--f-mono); }
+
+/* 角色 */
+.char { position: absolute; transform-origin: 50% 100%; z-index: 3; }
+.char svg { display: block; width: 100%; height: auto; overflow: visible; }
+#allan { width: 270px; }
+#arale { width: 205px; }
+.spot { position: absolute; left: 50%; bottom: -6px; width: 80%; height: 26px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(246, 183, 60, .75), rgba(246, 183, 60, 0)); opacity: 0; }
+.nameplate { position: absolute; left: 50%; bottom: -30px; transform: translateX(-50%); font-family: var(--f-display); font-size: 17px; white-space: nowrap; padding: 2px 12px; border-radius: 999px; color: #fff; }
+#allan .nameplate { background: var(--allan); }
+#arale .nameplate { background: var(--arale); }
+
+/* 字幕 */
+.subs { position: absolute; left: 34px; width: 850px; bottom: 18px; min-height: 74px; display: flex; gap: 12px; align-items: flex-start; padding: 12px 18px; border-radius: 16px; background: rgba(29, 42, 74, .92); color: #fff; z-index: 6; }
+.subs .who { flex: none; font-family: var(--f-display); font-size: 18px; padding: 3px 12px; border-radius: 999px; margin-top: 3px; }
+.subs .who.A { background: var(--allan); } .subs .who.R { background: var(--arale); }
+.subs .txt { font-size: 25px; line-height: 1.45; font-weight: 700; letter-spacing: .01em; }
+.subs.off { visibility: hidden; }
+
+/* 背景泡泡（呼應原始流程圖） */
+.bub { position: absolute; border-radius: 50%; border: 2px solid rgba(29, 42, 74, .55); }
+.bub.g { background: var(--mint); } .bub.b { background: var(--sky); }
+.bub span { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--f-display); font-size: 26px; color: var(--ink); }
+
+/* ---------- 各場景專屬 ---------- */
+/* intro */
+.title-xl { font-family: var(--f-display); font-size: 104px; line-height: 1; margin: 0; letter-spacing: .02em; }
+.title-xl b { color: var(--allan); font-weight: 400; }
+.title-en { font-family: var(--f-mono); font-size: 24px; color: #6a7594; margin-top: 10px; }
+/* clause */
+.quote { font-size: 26px; line-height: 1.6; font-weight: 700; }
+.quote em { font-style: normal; background: linear-gradient(transparent 58%, var(--amber) 58%); }
+.verbs { display: flex; gap: 10px; align-items: center; }
+.verbs .chip { font-size: 22px; padding: 8px 18px; }
+.verbs i { font-style: normal; font-size: 22px; color: #6a7594; }
+.attr { display: grid; grid-template-columns: 150px 1fr; gap: 8px 14px; align-items: center; font-size: 19px; }
+.attr dt { font-weight: 700; color: #6a7594; text-align: right; }
+.attr dd { margin: 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.attr dd span { font-weight: 700; padding: 2px 12px; border-radius: 8px; background: #eef3fb; border: 1.5px solid #c6d3ea; }
+/* flow */
+.doc537 { width: 170px; text-align: center; }
+.doc537 b { display: block; font-size: 21px; line-height: 1.3; }
+.chev { width: 0; height: 0; }
+.hub { width: 220px; height: 220px; border-radius: 50%; background: #fffbe0; border: 3px solid var(--ink); display: grid; place-items: center; text-align: center; box-shadow: 4px 5px 0 var(--ink); }
+.hub b { font-family: var(--f-display); font-size: 30px; font-weight: 400; }
+.rel { display: grid; gap: 10px; }
+.rel div { font-size: 22px; font-weight: 900; padding: 6px 14px; border-radius: 10px; background: #fff; border: 2px solid var(--ink); }
+.rel div code { font-family: var(--f-mono); color: var(--allan); margin-right: 8px; }
+/* cycle */
+.node { width: 132px; height: 132px; border-radius: 50%; border: 3px solid var(--ink); display: grid; place-items: center; text-align: center; font-family: var(--f-display); font-size: 22px; line-height: 1.2; box-shadow: 3px 4px 0 var(--ink); }
+.node small { display: block; font-family: var(--f-mono); font-size: 12px; color: #4a5575; }
+.src li { font-size: 19px; line-height: 1.5; margin-bottom: 6px; }
+.src li b { color: var(--allan); }
+.exc { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; font-size: 16px; text-align: center; }
+.exc div { padding: 6px 4px; border-right: 1.5px solid #c6d3ea; }
+.exc div:nth-child(4n) { border-right: 0; }
+.exc .h { background: var(--ink); color: #fff; font-weight: 700; }
+/* harden */
+.chk { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+.chk .card { display: flex; gap: 14px; align-items: center; padding: 12px 16px; font-size: 21px; font-weight: 700; }
+.chk .n { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--mint); border: 2px solid var(--ink); font-family: var(--f-mono); font-size: 18px; }
+.chk .card small { display: block; font-size: 15px; font-weight: 400; color: #6a7594; }
+.router { width: 250px; }
+/* record */
+.cmdb { width: 430px; padding: 0; overflow: hidden; }
+.cmdb .hd { background: var(--ink); color: #fff; padding: 8px 16px; font-family: var(--f-mono); font-size: 15px; display: flex; justify-content: space-between; }
+.cmdb table { width: 100%; border-collapse: collapse; font-size: 17px; }
+.cmdb td { padding: 7px 14px; border-top: 1.5px solid #e1e7f2; }
+.cmdb td:first-child { color: #6a7594; font-weight: 700; width: 120px; }
+.cmdb td.m { font-family: var(--f-mono); font-size: 15px; }
+.steps { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
+.steps span { font-size: 17px; font-weight: 700; padding: 6px 10px; border-radius: 8px; background: var(--sky); border: 2px solid var(--ink); white-space: nowrap; }
+.steps span.r { background: var(--amber); }
+.steps i { font-style: normal; color: #6a7594; }
+.drift { width: 360px; padding: 0; overflow: hidden; }
+.drift .hd { background: #2f3b5c; color: #fff; padding: 7px 14px; font-size: 15px; font-weight: 700; }
+.drift .row { display: grid; grid-template-columns: 1fr 70px 70px; padding: 6px 14px; font-size: 16px; border-top: 1.5px solid #e1e7f2; align-items: center; }
+.drift .row.x { background: #ffe9e9; }
+.drift .ok { color: #148a63; font-weight: 900; } .drift .bad { color: var(--coral); font-weight: 900; }
+.drift .ft { padding: 7px 14px; font-size: 15px; font-weight: 700; background: #fff4d6; border-top: 1.5px solid #e1e7f2; }
+/* case */
+.tl { position: relative; }
+.ev { width: 248px; }
+.ev .d { font-family: var(--f-mono); font-size: 15px; font-weight: 500; color: #fff; background: var(--ink); display: inline-block; padding: 2px 10px; border-radius: 6px; margin-bottom: 6px; }
+.ev p { margin: 0; font-size: 19px; font-weight: 700; line-height: 1.4; }
+.ev.bad { background: #ffe9e9; }
+.ev.bad .d { background: var(--coral); }
+.cli { background: #1b2238; color: #d7e3ff; font-family: var(--f-mono); font-size: 17px; border-radius: 10px; padding: 12px 16px; line-height: 1.6; border: 2.5px solid var(--ink); }
+.cli .warn { color: #ffb4b4; }
+.cli .cm { color: #8ea0c8; }
+.fix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.fix .card { padding: 12px 14px; font-size: 18px; font-weight: 700; background: #eafaf3; }
+.fix .card b { display: block; font-family: var(--f-display); font-weight: 400; font-size: 22px; color: #0f6e52; margin-bottom: 2px; }
+/* case2 */
+.console { width: 430px; padding: 0; overflow: hidden; }
+.console .hd { background: #e9edf5; border-bottom: 2px solid var(--ink); padding: 8px 14px; font-size: 15px; display: flex; gap: 6px; align-items: center; }
+.console .hd i { width: 11px; height: 11px; border-radius: 50%; background: #c6cede; display: inline-block; }
+.console .bd { padding: 14px 18px; display: grid; gap: 10px; font-size: 18px; }
+.console .opt { display: flex; justify-content: space-between; align-items: center; }
+.tog { width: 58px; height: 30px; border-radius: 999px; background: #c6cede; border: 2px solid var(--ink); position: relative; }
+.tog::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid var(--ink); }
+.tog.on { background: var(--coral); }
+.tog.on::after { left: 31px; }
+.cspm { width: 340px; }
+.cspm li { font-size: 18px; margin: 6px 0; }
+/* audit */
+.layer { display: grid; grid-template-columns: 120px 1fr; gap: 16px; align-items: center; padding: 12px 18px; }
+.layer .lv { font-family: var(--f-display); font-size: 30px; text-align: center; border-radius: 12px; padding: 10px 0; border: 2px solid var(--ink); }
+.layer ul { margin: 0; padding-left: 20px; font-size: 18.5px; line-height: 1.5; }
+/* questions */
+.note { background: #fffbe8; border: 2.5px solid var(--ink); border-radius: 6px 16px 16px 16px; padding: 14px 20px 14px 70px; position: relative; box-shadow: 4px 5px 0 var(--ink); }
+.note .q { position: absolute; left: 14px; top: 12px; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--sky); border: 2px solid var(--ink); font-family: var(--f-mono); font-weight: 500; font-size: 18px; }
+.note p { margin: 0; font-family: var(--f-hand); font-size: 26px; line-height: 1.45; font-weight: 700; }
+.note small { display: block; font-size: 15px; color: #6a7594; margin-top: 4px; }
+/* findings */
+.fd { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.fd .card { display: grid; grid-template-columns: 46px 1fr; gap: 12px; align-items: center; padding: 10px 14px; }
+.fd .mine { width: 46px; height: 46px; border-radius: 50%; background: var(--coral); color: #fff; display: grid; place-items: center; font-family: var(--f-display); font-size: 24px; border: 2px solid var(--ink); }
+.fd b { font-size: 20px; display: block; line-height: 1.3; }
+.fd small { font-size: 15px; color: #6a7594; display: block; line-height: 1.35; }
+/* ncr */
+.ncr { width: 600px; padding: 0; overflow: hidden; }
+.ncr .hd { background: var(--ink); color: #fff; padding: 10px 18px; display: flex; justify-content: space-between; align-items: center; font-size: 18px; font-weight: 700; }
+.ncr .hd .mono { font-size: 14px; opacity: .8; font-weight: 500; }
+.ncr .f { display: grid; grid-template-columns: 92px 1fr; border-top: 1.5px solid #e1e7f2; }
+.ncr .f > div:first-child { background: #eef3fb; font-weight: 900; font-size: 19px; display: grid; place-items: center; border-right: 1.5px solid #e1e7f2; }
+.ncr .f > div:last-child { padding: 10px 16px; font-family: var(--f-hand); font-size: 21px; line-height: 1.5; }
+.formula { display: flex; gap: 10px; align-items: center; font-family: var(--f-display); font-size: 26px; }
+/* summary */
+.five { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.five .k { text-align: center; }
+.five .k b { display: grid; place-items: center; width: 118px; height: 118px; margin: 0 auto 8px; border-radius: 28px; border: 3px solid var(--ink); font-family: var(--f-display); font-weight: 400; font-size: 66px; box-shadow: 4px 5px 0 var(--ink); }
+.five .k span { font-size: 19px; font-weight: 700; }
+.bye { font-family: var(--f-display); font-size: 54px; color: var(--arale); }
+
+/* ---------- 播放控制 ---------- */
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(16, 22, 42, .35); z-index: 20; border: 0; padding: 0; cursor: pointer; font: inherit; }
+.overlay span { font-family: var(--f-display); font-size: clamp(18px, 3.4vw, 32px); background: var(--amber); color: #1d2a4a; padding: .5em 1.2em; border-radius: 999px; border: 3px solid #1d2a4a; box-shadow: 4px 5px 0 #1d2a4a; }
+.overlay:focus-visible span { outline: 4px solid #fff; outline-offset: 4px; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.controls button, .controls select { font: inherit; font-size: .95rem; color: var(--fg); background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.controls button:hover { border-color: var(--accent); }
+.controls button:focus-visible, .controls select:focus-visible, .scrub:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.controls #play { background: var(--accent); color: var(--bg); border-color: var(--accent); min-width: 5.5em; font-weight: 700; }
+.scrub { flex: 1 1 260px; min-width: 0; accent-color: var(--accent); }
+.time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .9rem; }
+.chapters { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.chapters button { text-align: left; font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; cursor: pointer; display: grid; gap: 2px; min-width: 0; }
+.chapters button small { color: var(--muted); font-size: .78rem; font-variant-numeric: tabular-nums; }
+.chapters button[aria-current="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.chapters button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+body.render { padding: 0; background: #000; }
+body.render .wrap { max-width: none; display: block; }
+body.render header.page, body.render .controls, body.render .chapters, body.render .overlay { display: none !important; }
+body.render .viewport { width: 1280px; height: 720px; border-radius: 0; box-shadow: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="page">
+  <h1>ISO 27001:2022 A.8.9 組態管理</h1>
+  <p>運作流程 › 保全組態（Secure configuration）・Allan Lo 講師 × 助教阿拉蕾</p>
+</header>
+
+<div class="viewport" id="viewport">
+<div id="stage">
+  <div class="topbar">
+    <span class="ctl">A.8.9</span>
+    <span class="std">ISO/IEC 27001:2022 ・ 組態管理 Configuration management</span>
+    <span class="sec" id="secLabel">開場</span>
+    <span class="num" id="secNum">01/13</span>
+  </div>
+  <div class="pbar" id="pbar"></div>
+
+  <!-- 00 開場 -->
+  <section class="scene" data-scene="intro" data-layout="hero">
+    <div class="bub g" style="left:640px;top:30px;width:70px;height:70px" data-float="1"></div>
+    <div class="bub b" style="left:560px;top:420px;width:54px;height:54px" data-float="2"></div>
+    <div class="bub g" style="left:80px;top:470px;width:44px;height:44px" data-float="3"></div>
+    <div class="content">
+      <div class="abs" style="left:0;top:40px" data-in="s" data-fx="up">
+        <div class="chip mint" style="font-size:18px">控制屬性｜運作流程 › 保全組態</div>
+      </div>
+      <div class="abs" style="left:0;top:100px" data-in="s" data-d="0.25" data-fx="pop">
+        <h1 class="title-xl"><b>8.9</b> 組態管理</h1>
+        <div class="title-en">Configuration management</div>
+      </div>
+      <div class="abs" style="left:0;top:290px;display:flex;gap:12px" data-in="2" data-fx="up">
+        <span class="chip amber">2022 年版新增控制</span>
+        <span class="chip sky">Secure configuration</span>
+      </div>
+      <div class="abs card hand" style="left:0;top:370px;width:520px;font-size:24px" data-in="4" data-fx="left">
+        組態 ＝ 設備與系統「怎麼被設定」<br>設定歪了 → 駭客從縫裡鑽進來！
+      </div>
+    </div>
+  </section>
+
+  <!-- 01 條文與屬性 -->
+  <section class="scene" data-scene="clause">
+    <div class="content">
+      <h2 class="st" data-in="s" data-fx="up"><small>CONTROL ・ 控制措施本文</small>條文與控制屬性</h2>
+      <div class="card quote" data-in="0" data-fx="up" style="width:810px">
+        <em>硬體、軟體、服務及網路</em>的組態（包括安全組態），應予以<br>建立、文件化、實作、監視及審查。
+      </div>
+      <div class="verbs" style="margin-top:20px">
+        <span class="chip mint" data-in="1" data-d="0.0" data-fx="pop">建立</span><i data-in="1" data-d="0.3" data-fx="up">→</i>
+        <span class="chip mint" data-in="1" data-d="0.5" data-fx="pop">文件化</span><i data-in="1" data-d="0.8" data-fx="up">→</i>
+        <span class="chip mint" data-in="1" data-d="1.0" data-fx="pop">實作</span><i data-in="1" data-d="1.3" data-fx="up">→</i>
+        <span class="chip mint" data-in="1" data-d="1.5" data-fx="pop">監視</span><i data-in="1" data-d="1.8" data-fx="up">→</i>
+        <span class="chip mint" data-in="1" data-d="2.0" data-fx="pop">審查</span>
+      </div>
+      <dl class="attr" style="margin-top:22px" data-in="2" data-fx="up">
+        <dt>控制型式</dt><dd><span>#預防</span></dd>
+        <dt>資訊安全性質</dt><dd><span>#機密性</span><span>#完整性</span><span>#可用性</span></dd>
+        <dt>網宇安全概念</dt><dd><span>#保護</span></dd>
+        <dt>運作能力</dt><dd><span style="background:var(--amber)">#保全組態</span></dd>
+        <dt>安全領域</dt><dd><span>#保護</span></dd>
+      </dl>
+      <div class="abs stamp" style="left:560px;top:330px" data-in="3" data-fx="stamp">先鎖門！</div>
+    </div>
+  </section>
+
+  <!-- 02 流程地圖 -->
+  <section class="scene" data-scene="flow">
+    <div class="content">
+      <h2 class="st" data-in="s" data-fx="up"><small>OPERATIONAL FLOW ・ 運作流程</small>8.9 在流程中的位置</h2>
+      <div class="abs card doc537" style="left:0;top:180px" data-in="0" data-fx="left" data-hl="0">
+        <svg viewBox="0 0 60 60" width="56" height="56" aria-hidden="true"><rect x="10" y="6" width="40" height="48" rx="4" fill="#fff" stroke="#1d2a4a" stroke-width="3"/><path d="M18 18h24M18 27h24M18 36h16" stroke="#1d2a4a" stroke-width="3" stroke-linecap="round"/><circle cx="43" cy="44" r="8" fill="#5fd9ae" stroke="#1d2a4a" stroke-width="2.5"/></svg>
+        <b>5.37<br>書面紀錄之<br>運作程序</b>
+      </div>
+      <svg class="abs" style="left:186px;top:228px" width="60" height="90" viewBox="0 0 60 90" data-in="0" data-d="0.6" data-fx="left" aria-hidden="true"><path d="M5 5h22l28 40-28 40H5l28-40z" fill="#4a72c6" stroke="#1d2a4a" stroke-width="2"/></svg>
+      <div class="abs hub" style="left:262px;top:160px" data-in="1" data-fx="pop" data-hl="1">
+        <div><svg viewBox="0 0 64 64" width="70" height="70" aria-hidden="true"><g data-spin="1" style="transform-origin:32px 32px"><circle cx="32" cy="32" r="18" fill="#f6b73c" stroke="#1d2a4a" stroke-width="3"/><g stroke="#1d2a4a" stroke-width="7" stroke-linecap="round"><path d="M32 4v8M32 52v8M4 32h8M52 32h8M12 12l6 6M46 46l6 6M12 52l6-6M46 18l6-6"/></g><circle cx="32" cy="32" r="7" fill="#fff" stroke="#1d2a4a" stroke-width="3"/></g></svg><br><b>8.9 組態管理</b></div>
+      </div>
+      <div class="bub b abs" style="left:250px;top:76px;width:92px;height:92px" data-in="1" data-d="0.4" data-fx="pop"><span>硬體</span></div>
+      <div class="bub b abs" style="left:420px;top:68px;width:92px;height:92px" data-in="1" data-d="0.8" data-fx="pop"><span>網路</span></div>
+      <div class="bub b abs" style="left:262px;top:392px;width:92px;height:92px" data-in="1" data-d="1.2" data-fx="pop"><span>軟體</span></div>
+      <div class="bub b abs" style="left:420px;top:392px;width:92px;height:92px" data-in="1" data-d="1.6" data-fx="pop"><span>服務</span></div>
+      <svg class="abs" style="left:492px;top:228px" width="70" height="90" viewBox="0 0 70 90" data-in="2" data-fx="left" aria-hidden="true"><path d="M3 5h20l26 40-26 40H3l26-40z" fill="#ffd08a" stroke="#e7a637" stroke-width="2"/><path d="M27 5h20l20 40-20 40H27l20-40z" fill="#a8ead5" stroke="#5fd9ae" stroke-width="2"/></svg>
+      <div class="abs rel" style="left:572px;top:150px;width:300px">
+        <div data-in="2" data-d="0.3" data-fx="right"><code>8.4</code>對原始碼之存取</div>
+        <div data-in="2" data-d="1.4" data-fx="right"><code>8.18</code>特權公用程式</div>
+        <div data-in="2" data-d="2.5" data-fx="right"><code>8.19</code>運作中系統軟體安裝</div>
+        <div data-in="2" data-d="3.6" data-fx="right"><code>8.24</code>密碼技術之使用</div>
+      </div>
+      <div class="abs chip amber" style="left:300px;top:500px;font-size:20px" data-in="3" data-fx="pop">8.9 ＝ 控制措施的轉運站 🚉</div>
+    </div>
+  </section>
+
+  <!-- 03 生命週期 -->
+  <section class="scene" data-scene="cycle">
+    <div class="content">
+      <h2 class="st" data-in="s" data-fx="up"><small>PART 1 ・ ISMS 作業重點</small>組態管理生命週期</h2>
+      <div class="abs" style="left:0;top:80px;width:430px;height:430px">
+        <svg class="abs" style="left:0;top:0" width="430" height="430" viewBox="0 0 430 430" data-in="1" data-fx="zoom" aria-hidden="true">
+          <circle cx="215" cy="215" r="150" fill="none" stroke="#1d2a4a" stroke-width="3" stroke-dasharray="10 9" data-spin="0.15" style="transform-origin:215px 215px"/>
+        </svg>
+        <div class="abs node" style="left:149px;top:149px;background:var(--amber);width:132px;height:132px" data-in="1" data-fx="pop">基準<small>BASELINE</small></div>
+        <div class="abs node" style="left:149px;top:-1px;background:var(--mint)" data-in="1" data-d="0.6" data-fx="pop">定義<br>基準</div>
+        <div class="abs node" style="left:292px;top:102px;background:var(--sky)" data-in="1" data-d="1.4" data-fx="pop">文件化</div>
+        <div class="abs node" style="left:237px;top:270px;background:var(--mint)" data-in="1" data-d="2.2" data-fx="pop">部署<br>實作</div>
+        <div class="abs node" style="left:61px;top:270px;background:var(--sky)" data-in="1" data-d="3.0" data-fx="pop">監控<br>偏移</div>
+        <div class="abs node" style="left:6px;top:102px;background:var(--mint)" data-in="1" data-d="3.8" data-fx="pop">定期<br>審查</div>
+      </div>
+      <div class="abs card" style="left:460px;top:70px;width:360px" data-in="2" data-fx="right" data-hl="2,3">
+        <div style="font-family:var(--f-display);font-size:22px;margin-bottom:6px">基準從哪裡來？</div>
+        <ul class="src" style="margin:0;padding-left:20px">
+          <li><b>原廠強化指引</b><br><span class="tag">Microsoft / Cisco / VMware Security Baseline</span></li>
+          <li><b>CIS Benchmarks</b><br><span class="tag">Level 1 / Level 2 設定建議</span></li>
+          <li><b>GCB 政府組態基準</b><br><span class="tag">數位發展部資通安全署發布</span></li>
+        </ul>
+      </div>
+      <div class="abs" style="left:460px;top:370px;width:360px" data-in="4" data-fx="up">
+        <div style="font-weight:900;font-size:18px;margin-bottom:6px">例外管理（一定要留下來）</div>
+        <div class="exc">
+          <div class="h">例外項目</div><div class="h">理由</div><div class="h">核准人</div><div class="h">到期日</div>
+          <div class="mono" style="font-size:13px">SMBv1</div><div>舊機台</div><div>資訊主管</div><div class="mono" style="font-size:13px">2026-12</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 安全組態基準 -->
+  <section class="scene" data-scene="harden">
+    <div class="content">
+      <h2 class="st" data-in="s" data-fx="up"><small>PART 1 ・ ISO/IEC 27002 指引</small>安全組態基準必備項目</h2>
+      <div class="chk">
+        <div class="card" data-in="1" data-d="0.0" data-fx="up" data-hl="1"><span class="n">1</span><div>變更預設帳號密碼<small>admin / 1234 一律換掉</small></div></div>
+        <div class="card" data-in="1" data-d="1.8" data-fx="up" data-hl="1"><span class="n">2</span><div>關閉不必要服務、埠口<small>Telnet、FTP、SMBv1…</small></div></div>
+        <div class="card" data-in="1" data-d="4.4" data-fx="up" data-hl="1"><span class="n">3</span><div>特權帳號最少化<small>呼應 8.2 特權存取權限</small></div></div>
+        <div class="card" data-in="2" data-d="0.0" data-fx="up" data-hl="2"><span class="n">4</span><div>限制高權限公用程式<small>呼應 8.18</small></div></div>
+        <div class="card" data-in="2" data-d="2.0" data-fx="up" data-hl="2"><span class="n">5</span><div>系統時間同步<small>NTP，呼應 8.17 鐘訊同步</small></div></div>
+        <div class="card" data-in="2" data-d="3.4" data-fx="up" data-hl="2"><span class="n">6</span><div>閒置逾時登出<small>Session timeout / 螢幕鎖定</small></div></div>
+        <div class="card" data-in="2" data-d="5.0" data-fx="up" data-hl="2"><span class="n">7</span><div>軟體授權合法<small>授權數量與版本查核</small></div></div>
+      </div>
+      <div class="abs card" style="left:430px;top:395px;width:380px;display:flex;gap:12px;align-items:center;background:#ffe9e9" data-in="3" data-fx="pop">
+        <svg class="router" viewBox="0 0 120 70" width="110" height="64" aria-hidden="true"><rect x="8" y="30" width="104" height="32" rx="8" fill="#e9edf5" stroke="#1d2a4a" stroke-width="3"/><path d="M30 30L22 6M90 30l8-24" stroke="#1d2a4a" stroke-width="3" stroke-linecap="round"/><circle cx="28" cy="46" r="4" fill="#5fd9ae"/><circle cx="42" cy="46" r="4" fill="#5fd9ae"/><circle cx="56" cy="46" r="4" fill="#ef5d5d"/></svg>
+        <div class="mono" style="font-size:20px;white-space:nowrap;line-height:1.5">user: admin<br>pass: admin</div>
+      </div>
+      <div class="abs stamp" style="left:610px;top:350px" data-in="4" data-fx="stamp">立刻改掉！</div>
+    </div>
+  </section>
+
+  <!-- 05 紀錄變更監控 -->
+  <section class="scene" data-scene="record">
+    <div class="content">
+      <h2 class="st" data-in="s" data-fx="up"><small>PART 1 ・ 管理組態</small>組態紀錄・變更・監控</h2>
+      <div class="abs card cmdb" style="left:0;top:76px" data-in="0" data-fx="left" data-hl="0,1">
+        <div class="hd"><span>CMDB ・ 組態項目</span><span>CI-0427</span></div>
+        <table>
+          <tr><td>組態項目</td><td class="m">FW-CORE-01</td></tr>
+          <tr><td>擁有者</td><td>網管課 王工程師</td></tr>
+          <tr><td>最後變更</td><td class="m">2026-09-18</td></tr>
+          <tr><td>範本版本</td><td class="m">FW-Baseline v3.2</td></tr>
+          <tr><td>關聯資產</td><td class="m">CORE-SW-01, ERP-DB</td></tr>
+        </table>
+      </div>
+      <div class="abs hand" style="left:0;top:345px;width:430px;font-size:21px;color:#2f3b5c" data-in="1" data-fx="up">✎ CMDB、資產系統、Excel 都可以<br>　重點是：有人維護、資料最新</div>
+      <div class="abs" style="left:0;top:430px" data-in="2" data-fx="up" data-hl="2">
+        <div style="font-weight:900;font-size:18px;margin-bottom:8px">組態變更 → 走 <span class="mono" style="color:var(--allan)">8.32</span> 變更管理</div>
+        <div class="steps"><span>申請</span><i>›</i><span>評估</span><i>›</i><span>核准</span><i>›</i><span>測試</span><i>›</i><span>上線</span><i>›</i><span class="r">回復計畫</span></div>
+      </div>
+      <div class="abs card drift" style="left:460px;top:76px" data-in="3" data-fx="right" data-hl="3">
+        <div class="hd">組態偏移檢查 ・ SRV-AP-03</div>
+        <div class="row" style="font-size:13px;color:#6a7594;font-weight:700"><span>檢查項目</span><span>基準</span><span>實際</span></div>
+        <div class="row"><span>SMBv1 停用</span><span>停用</span><span class="ok">✓</span></div>
+        <div class="row x"><span>Telnet 服務</span><span>關閉</span><span class="bad">✗ 開啟</span></div>
+        <div class="row"><span>密碼長度</span><span>≥ 12</span><span class="ok">✓</span></div>
+        <div class="row"><span>NTP 同步</span><span>啟用</span><span class="ok">✓</span></div>
+        <div class="ft">偏移 1 項 → 自動開單 <span class="mono">INC-2026-0412</span></div>
+      </div>
+      <div class="abs" style="left:520px;top:380px;width:260px;text-align:center" data-in="4" data-fx="pop">
+        <svg viewBox="0 0 100 100" width="96" height="96" aria-hidden="true"><ellipse cx="50" cy="46" rx="34" ry="40" fill="#e6f1ff" stroke="#1d2a4a" stroke-width="4"/><path d="M30 30q8-10 18-6" stroke="#fff" stroke-width="5" stroke-linecap="round" fill="none"/><rect x="44" y="84" width="12" height="14" fill="#1d2a4a"/></svg>
+        <div class="hand" style="font-size:22px;font-weight:700">每天照鏡子＋留紀錄</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 案例一 -->
+  <section class="scene" data-scene="case1">
+    <div class="content">
+      <h2 class="st" data-in="s" data-fx="up"><small>CASE 1 ・ 製造業（改編）</small>臨時規則變永久</h2>
+      <div class="abs cli" style="left:0;top:70px;width:810px" data-in="1" data-fx="up">
+        <span class="cm"># FW-EDGE-01  rule 87</span><br>
+        permit ip <span class="warn">any any</span>  <span class="cm"># TEMP vendor remote support — 修完就關</span>
+      </div>
+      <div class="abs card ev" style="left:0;top:180px" data-in="1" data-d="1.5" data-fx="up"><span class="d">Day 0</span><p>為讓廠商遠端維修<br>開立 Any-Any 臨時規則</p></div>
+      <div class="abs card ev" style="left:280px;top:180px" data-in="2" data-fx="up"><span class="d">Day 1 ～ 89</span><p>維修完成⋯<br>規則沒人記得關</p></div>
+      <div class="abs card ev bad" style="left:560px;top:180px" data-in="2" data-d="1.5" data-fx="up"><span class="d">Day 90</span><p>駭客入侵，生產排程<br>系統遭加密、停線 2 天</p></div>
+      <div class="abs fix" style="left:0;top:350px;width:810px">
+        <div class="card" data-in="4" data-d="0.0" data-fx="up"><b>① 變更單寫到期日</b>臨時規則到期自動提醒</div>
+        <div class="card" data-in="4" data-d="2.6" data-fx="up"><b>② 規則每季審查</b>網管＋業務單位共同確認</div>
+        <div class="card" data-in="4" data-d="4.4" data-fx="up"><b>③ 工具自動告警</b>偵測 any/any 等高風險規則</div>
+      </div>
+      <div class="abs stamp" style="left:540px;top:290px" data-in="3" data-fx="stamp">臨時 ≠ 永久</div>
+    </div>
+  </section>
+
+  <!-- 07 案例二 -->
+  <section class="scene" data-scene="case2">
+    <div class="content">
+      <h2 class="st" data-in="s" data-fx="up"><small>CASE 2 ・ 電商（改編）</small>雲端服務一個勾選</h2>
+      <div class="abs card console" style="left:0;top:76px" data-in="0" data-fx="left">
+        <div class="hd"><i></i><i></i><i></i><span class="mono" style="margin-left:8px">storage / customer-backup</span></div>
+        <div class="bd">
+          <div class="opt"><span>伺服器端加密</span><span class="tog on" style="background:var(--mint)"></span></div>
+          <div class="opt"><span>版本控制</span><span class="tog"></span></div>
+          <div class="opt" style="font-weight:900;color:var(--coral)"><span>允許公開讀取</span><span class="tog on"></span></div>
+          <div class="opt"><span>存取紀錄</span><span class="tog"></span></div>
+        </div>
+      </div>
+      <div class="abs stamp" style="left:20px;top:292px" data-in="1" data-fx="stamp">一個勾選 ＝ 個資外洩</div>
+      <div class="abs chip coral" style="left:470px;top:330px" data-in="1" data-d="2.5" data-fx="up">個資法：通報、通知當事人、矯正</div>
+      <div class="abs card cspm" style="left:470px;top:76px" data-in="2" data-fx="right" data-hl="2">
+        <div style="font-family:var(--f-display);font-size:22px">CSPM 持續檢查</div>
+        <div class="tag">Cloud Security Posture Management</div>
+        <ul style="margin:8px 0 0;padding-left:20px">
+          <li>公開的儲存空間</li><li>未加密的資料庫</li><li>未啟用 MFA 的管理者</li><li>過寬的安全群組規則</li>
+        </ul>
+      </div>
+      <div class="abs card" style="left:0;top:430px;width:810px;display:flex;gap:16px;align-items:center;background:#eef6ff" data-in="4" data-fx="up">
+        <span class="chip sky">2022 年版</span>
+        <span style="font-size:22px;font-weight:900">條文明訂「硬體・軟體・<u>服務</u>・網路」</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 稽核三層 -->
+  <section class="scene" data-scene="audit">
+    <div class="content">
+      <h2 class="st" data-in="s" data-fx="up"><small>PART 2 ・ 稽核查核重點</small>三層查核法</h2>
+      <div style="display:grid;gap:12px">
+        <div class="card layer" data-in="2" data-fx="left" data-hl="2"><div class="lv" style="background:var(--sky)">文件</div>
+          <ul><li>組態管理程序（呼應 5.37）</li><li>各類設備安全組態基準</li><li>基準版本、核准與例外清單</li></ul></div>
+        <div class="card layer" data-in="3" data-fx="left" data-hl="3"><div class="lv" style="background:var(--mint)">紀錄</div>
+          <ul><li>組態清冊／CMDB 完整性</li><li>變更單（8.32）可追溯</li><li>偏移檢查、定期審查紀錄</li></ul></div>
+        <div class="card layer" data-in="4" data-fx="left" data-hl="4"><div class="lv" style="background:var(--amber)">現場</div>
+          <ul><li>由資產清冊抽樣：2 台伺服器、1 台防火牆、1 個雲端服務</li><li>管理者當場登入，與基準逐項比對</li></ul></div>
+      </div>
+      <div class="abs stamp" style="left:520px;top:-6px" data-in="6" data-fx="stamp">用證據說話</div>
+    </div>
+  </section>
+
+  <!-- 09 稽核問句 -->
+  <section class="scene" data-scene="questions">
+    <div class="content">
+      <h2 class="st" data-in="s" data-fx="up"><small>PART 2 ・ 內稽也能用</small>稽核員常用問句</h2>
+      <div style="display:grid;gap:16px;width:800px">
+        <div class="note" data-in="1" data-fx="left" data-hl="1"><span class="q">Q1</span><p>這台伺服器套用哪一版基準？<br>上次比對是什麼時候？</p><small>看：基準版本、比對報告日期</small></div>
+        <div class="note" data-in="2" data-fx="left" data-hl="2"><span class="q">Q2</span><p>最近一次組態變更是哪一筆？<br>請帶我看變更單與測試紀錄。</p><small>看：系統實際變更時間 vs. 變更單核准時間</small></div>
+        <div class="note" data-in="3" data-fx="left" data-hl="3"><span class="q">Q3</span><p>基準例外是誰核准的？<br>有沒有到期日與補償控制？</p><small>看：例外清單、核准紀錄、到期追蹤</small></div>
+      </div>
+      <div class="abs" style="left:560px;top:-4px;display:flex;gap:8px">
+        <span class="chip mint" data-in="4" data-d="0.4" data-fx="pop">問版本</span>
+        <span class="chip sky" data-in="4" data-d="1.0" data-fx="pop">問變更</span>
+        <span class="chip amber" data-in="4" data-d="1.6" data-fx="pop">問例外</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 常見缺失 -->
+  <section class="scene" data-scene="findings">
+    <div class="content">
+      <h2 class="st" data-in="s" data-fx="up"><small>PART 3 ・ 常見的缺失</small>踩雷 TOP 6</h2>
+      <div class="fd">
+        <div class="card" data-in="1" data-fx="pop" data-hl="1"><span class="mine">1</span><div><b>基準有寫，沒落實</b><small>GCB 掃描套用率低，一片紅</small></div></div>
+        <div class="card" data-in="2" data-fx="pop" data-hl="2"><span class="mine">2</span><div><b>預設密碼沒改</b><small>印表機、交換器、iLO / iDRAC</small></div></div>
+        <div class="card" data-in="3" data-fx="pop" data-hl="3"><span class="mine">3</span><div><b>基準多年未更新</b><small>仍針對已停止支援的 OS 版本</small></div></div>
+        <div class="card" data-in="4" data-fx="pop" data-hl="4"><span class="mine">4</span><div><b>直接上機改設定</b><small>無變更單，事後補不出紀錄</small></div></div>
+        <div class="card" data-in="5" data-fx="pop" data-hl="5"><span class="mine">5</span><div><b>無組態備份／未還原測試</b><small>設備故障時無法快速復原</small></div></div>
+        <div class="card" data-in="6" data-fx="pop" data-hl="6"><span class="mine">6</span><div><b>雲端、SaaS 未納管</b><small>只管機房設備，漏了「服務」</small></div></div>
+      </div>
+      <div class="abs card hand" style="left:500px;top:440px;width:300px;font-size:22px;background:#fff6fb;transform:rotate(-2deg)" data-in="7" data-fx="pop">📒 阿拉蕾的小本本：<br>六個雷，全記下來！</div>
+    </div>
+  </section>
+
+  <!-- 11 不符合事項 -->
+  <section class="scene" data-scene="ncr">
+    <div class="content">
+      <h2 class="st" data-in="s" data-fx="up"><small>PART 3 ・ 稽核員示範</small>不符合事項怎麼寫</h2>
+      <div class="card ncr" data-in="0" data-fx="up">
+        <div class="hd"><span>不符合事項報告</span><span class="mono">NCR-2026-07 ・ 次要不符合</span></div>
+        <div class="f" data-in="1" data-fx="left" data-hl="1"><div>事實</div><div>抽查核心交換器 1 台，管理帳號仍為原廠預設帳號密碼，且未見組態基準比對紀錄。</div></div>
+        <div class="f" data-in="2" data-fx="left" data-hl="2"><div>要求</div><div>不符合 ISO/IEC 27001:2022 附錄 A 8.9：組態應予建立、實作及監視。</div></div>
+        <div class="f" data-in="2" data-d="3.5" data-fx="left" data-hl="2"><div>證據</div><div>設備登入畫面截圖、網管人員訪談紀錄。</div></div>
+      </div>
+      <div class="abs card" style="left:620px;top:90px;width:200px;font-size:17px;background:#eafaf3" data-in="3" data-fx="right">
+        <b style="font-family:var(--f-display);font-weight:400;font-size:20px">寫得好的缺失</b><br>✔ 具體<br>✔ 可查證<br>✔ 能找出根本原因<br>✔ 導向有效矯正
+      </div>
+      <div class="abs formula" style="left:0;top:420px">
+        <span class="chip mint" style="font-size:24px" data-in="4" data-d="0.6" data-fx="pop">事實</span><span data-in="4" data-d="0.9" data-fx="up">＋</span>
+        <span class="chip sky" style="font-size:24px" data-in="4" data-d="1.2" data-fx="pop">要求</span><span data-in="4" data-d="1.5" data-fx="up">＋</span>
+        <span class="chip amber" style="font-size:24px" data-in="4" data-d="1.8" data-fx="pop">證據</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 總結 -->
+  <section class="scene" data-scene="summary">
+    <div class="content">
+      <h2 class="st" data-in="s" data-fx="up"><small>SUMMARY ・ 今日口訣</small>建・記・施・監・審</h2>
+      <div class="five" style="margin-top:20px">
+        <div class="k" data-in="0" data-d="2.5" data-fx="pop"><b style="background:var(--mint)">建</b><span>建立基準</span></div>
+        <div class="k" data-in="0" data-d="3.0" data-fx="pop"><b style="background:var(--sky)">記</b><span>記錄文件</span></div>
+        <div class="k" data-in="0" data-d="3.5" data-fx="pop"><b style="background:var(--amber)">施</b><span>落實實作</span></div>
+        <div class="k" data-in="0" data-d="4.0" data-fx="pop"><b style="background:var(--sky)">監</b><span>監控偏移</span></div>
+        <div class="k" data-in="0" data-d="4.5" data-fx="pop"><b style="background:var(--mint)">審</b><span>定期審查</span></div>
+      </div>
+      <div class="abs card" style="left:0;top:330px;width:810px;display:flex;gap:14px;align-items:center" data-in="1" data-fx="up">
+        <span class="chip amber">＋ 8.32 變更管理</span><span style="font-size:22px;font-weight:900">設定不走鐘，駭客沒縫鑽！</span>
+      </div>
+      <div class="abs bye" style="left:0;top:430px" data-in="2" data-fx="pop">嗯掐～ 下堂課見！</div>
+    </div>
+  </section>
+
+  <!-- 角色：Q 版 Allan Lo -->
+  <div class="char" id="allan" aria-label="Q版 Allan Lo 講師">
+    <div class="spot" id="allanSpot"></div>
+    <svg viewBox="0 0 220 300" aria-hidden="true">
+      <ellipse cx="110" cy="293" rx="62" ry="7" fill="rgba(29,42,74,.18)"/>
+      <rect x="86" y="246" width="19" height="40" rx="6" fill="#1f2c50"/>
+      <rect x="115" y="246" width="19" height="40" rx="6" fill="#1f2c50"/>
+      <ellipse cx="94" cy="288" rx="16" ry="7" fill="#3a2a22"/>
+      <ellipse cx="126" cy="288" rx="16" ry="7" fill="#3a2a22"/>
+      <rect x="40" y="186" width="24" height="56" rx="12" fill="#2b4c9a" transform="rotate(12 52 190)"/>
+      <circle cx="42" cy="244" r="11" fill="#ffd9b8"/>
+      <path d="M58 182 Q110 162 162 182 L168 256 Q110 268 52 256 Z" fill="#2b4c9a" stroke="#1d2a4a" stroke-width="2.5"/>
+      <path d="M94 176 L110 222 L126 176 Z" fill="#fff"/>
+      <path d="M105 184 h10 l4 28 -9 11 -9 -11 z" fill="#d9443a" stroke="#1d2a4a" stroke-width="1.5"/>
+      <path d="M94 176 L104 212 M126 176 L116 212" stroke="#1d2a4a" stroke-width="2.5"/>
+      <rect x="64" y="204" width="34" height="14" rx="3" fill="#fff" stroke="#1d2a4a" stroke-width="1.5"/>
+      <text x="81" y="214.5" font-size="8.5" text-anchor="middle" fill="#1d2a4a" font-family="Arial, sans-serif" font-weight="700">Allan Lo</text>
+      <g id="allanArm" style="transform-origin:156px 190px">
+        <rect x="150" y="182" width="24" height="54" rx="12" fill="#2b4c9a" transform="rotate(-38 162 186)"/>
+        <path d="M186 214 L232 152" stroke="#f6b73c" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="232" cy="152" r="6" fill="#ef5d5d"/>
+        <circle cx="186" cy="216" r="11" fill="#ffd9b8"/>
+      </g>
+      <rect x="100" y="156" width="20" height="20" fill="#f5c9a5"/>
+      <g id="allanHead" style="transform-origin:110px 160px">
+        <circle cx="40" cy="108" r="13" fill="#ffd0aa"/>
+        <circle cx="180" cy="108" r="13" fill="#ffd0aa"/>
+        <ellipse cx="110" cy="100" rx="72" ry="68" fill="#ffd9b8"/>
+        <path d="M37 104 Q30 26 110 26 Q190 26 183 104 Q176 74 150 62 Q126 80 84 68 Q66 64 56 76 Q44 86 37 104 Z" fill="#26262f"/>
+        <path d="M84 68 Q100 44 136 46" stroke="#4a4a58" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M70 86 q12 -6 24 0 M126 86 q12 -6 24 0" stroke="#26262f" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+        <g id="allanEyes" style="transform-origin:110px 106px">
+          <ellipse cx="82" cy="106" rx="6.5" ry="7.5" fill="#1d1d26"/>
+          <ellipse cx="138" cy="106" rx="6.5" ry="7.5" fill="#1d1d26"/>
+          <circle cx="84.5" cy="103" r="2.2" fill="#fff"/>
+          <circle cx="140.5" cy="103" r="2.2" fill="#fff"/>
+        </g>
+        <rect x="60" y="91" width="44" height="31" rx="10" fill="rgba(255,255,255,.22)" stroke="#1d1d26" stroke-width="4"/>
+        <rect x="116" y="91" width="44" height="31" rx="10" fill="rgba(255,255,255,.22)" stroke="#1d1d26" stroke-width="4"/>
+        <path d="M104 102 Q110 97 116 102" stroke="#1d1d26" stroke-width="4" fill="none"/>
+        <ellipse cx="66" cy="134" rx="10" ry="6" fill="#ff9aa2" opacity=".55"/>
+        <ellipse cx="154" cy="134" rx="10" ry="6" fill="#ff9aa2" opacity=".55"/>
+        <path id="allanSmile" d="M96 138 Q110 152 124 138" stroke="#7a2e2e" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <g id="allanMouth" style="display:none">
+          <ellipse id="allanMouthO" cx="110" cy="142" rx="12" ry="8" fill="#7a2e2e"/>
+          <ellipse cx="110" cy="146" rx="7" ry="3" fill="#ff8a8a"/>
+        </g>
+      </g>
+    </svg>
+    <div class="nameplate">Allan Lo 講師</div>
+  </div>
+
+  <!-- 角色：助教阿拉蕾（原創 Q 版造型） -->
+  <div class="char" id="arale" aria-label="助教阿拉蕾">
+    <div class="spot" id="araleSpot"></div>
+    <svg viewBox="0 0 200 280" aria-hidden="true">
+      <ellipse cx="100" cy="273" rx="52" ry="6" fill="rgba(29,42,74,.18)"/>
+      <rect x="78" y="232" width="16" height="30" rx="6" fill="#ffe2c8"/>
+      <rect x="106" y="232" width="16" height="30" rx="6" fill="#ffe2c8"/>
+      <ellipse cx="85" cy="266" rx="15" ry="8" fill="#e23b3b" stroke="#1d2a4a" stroke-width="2"/>
+      <ellipse cx="115" cy="266" rx="15" ry="8" fill="#e23b3b" stroke="#1d2a4a" stroke-width="2"/>
+      <path d="M44 150 Q34 120 52 104 L148 104 Q166 120 156 150 Z" fill="#6b3fa0"/>
+      <g id="araleArmL" style="transform-origin:66px 182px">
+        <rect x="40" y="176" width="22" height="46" rx="11" fill="#fff" stroke="#1d2a4a" stroke-width="2" transform="rotate(28 62 180)"/>
+        <circle cx="38" cy="214" r="10" fill="#ffe2c8"/>
+      </g>
+      <g id="araleArmR" style="transform-origin:134px 182px">
+        <rect x="138" y="176" width="22" height="46" rx="11" fill="#fff" stroke="#1d2a4a" stroke-width="2" transform="rotate(-28 138 180)"/>
+        <circle cx="162" cy="214" r="10" fill="#ffe2c8"/>
+      </g>
+      <path d="M64 172 Q100 160 136 172 L142 240 Q100 250 58 240 Z" fill="#fff" stroke="#1d2a4a" stroke-width="2"/>
+      <path d="M70 196 L130 196 L136 240 Q100 250 64 240 Z" fill="#4a7fe0" stroke="#1d2a4a" stroke-width="2"/>
+      <path d="M74 196 L80 172 M126 196 L120 172" stroke="#4a7fe0" stroke-width="7" stroke-linecap="round"/>
+      <rect x="88" y="208" width="24" height="16" rx="3" fill="#fff" stroke="#1d2a4a" stroke-width="1.5"/>
+      <text x="100" y="220" font-size="10" text-anchor="middle" fill="#c2378f" font-family="Arial, sans-serif" font-weight="700">TA</text>
+      <g id="araleHead" style="transform-origin:100px 168px">
+        <ellipse cx="100" cy="112" rx="64" ry="58" fill="#ffe2c8"/>
+        <path d="M38 112 Q36 74 62 66 L72 92 L86 70 L100 94 L114 70 L128 92 L138 66 Q164 74 162 112 Q150 90 144 88 L130 100 L116 82 L100 104 L84 82 L70 100 L56 88 Q50 92 38 112 Z" fill="#7a46b5"/>
+        <path d="M40 72 Q100 2 160 72 Z" fill="#e23b3b" stroke="#1d2a4a" stroke-width="2.5"/>
+        <path d="M34 74 Q100 58 166 74 Q100 82 34 74 Z" fill="#c42a2a" stroke="#1d2a4a" stroke-width="2"/>
+        <path d="M44 52 Q22 36 18 18 Q34 26 40 22 Q38 36 52 44 Z" fill="#fff" stroke="#1d2a4a" stroke-width="2"/>
+        <path d="M156 52 Q178 36 182 18 Q166 26 160 22 Q162 36 148 44 Z" fill="#fff" stroke="#1d2a4a" stroke-width="2"/>
+        <circle cx="100" cy="34" r="7" fill="#f6b73c" stroke="#1d2a4a" stroke-width="2"/>
+        <g id="araleEyes" style="transform-origin:100px 116px">
+          <ellipse cx="76" cy="116" rx="7" ry="9" fill="#2a1a1a"/>
+          <ellipse cx="124" cy="116" rx="7" ry="9" fill="#2a1a1a"/>
+          <circle cx="79" cy="112" r="2.6" fill="#fff"/>
+          <circle cx="127" cy="112" r="2.6" fill="#fff"/>
+        </g>
+        <circle cx="76" cy="115" r="21" fill="rgba(255,255,255,.25)" stroke="#5a2e1a" stroke-width="5"/>
+        <circle cx="124" cy="115" r="21" fill="rgba(255,255,255,.25)" stroke="#5a2e1a" stroke-width="5"/>
+        <path d="M97 114 h6" stroke="#5a2e1a" stroke-width="5"/>
+        <ellipse cx="56" cy="142" rx="9" ry="5" fill="#ff8fb0" opacity=".6"/>
+        <ellipse cx="144" cy="142" rx="9" ry="5" fill="#ff8fb0" opacity=".6"/>
+        <path id="araleSmile" d="M88 145 Q100 156 112 145" stroke="#7a2e2e" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <g id="araleMouth" style="display:none">
+          <path id="araleMouthO" d="M86 143 Q100 143 114 143 Q112 160 100 160 Q88 160 86 143 Z" fill="#7a2e2e"/>
+          <ellipse cx="100" cy="155" rx="6" ry="3" fill="#ff8a8a"/>
+        </g>
+      </g>
+    </svg>
+    <div class="nameplate">助教 阿拉蕾</div>
+  </div>
+
+  <div class="subs" id="subs"><span class="who A" id="subWho">Allan</span><span class="txt" id="subTxt"></span></div>
+</div>
+<button class="overlay" id="startBtn" type="button" aria-label="開始播放"><span>▶ 開始上課（約 9 分鐘）</span></button>
+</div>
+
+<div class="controls" role="group" aria-label="播放控制">
+  <button id="play" type="button">▶ 播放</button>
+  <button id="prev" type="button" aria-label="上一段">⏮ 上一段</button>
+  <button id="next" type="button" aria-label="下一段">下一段 ⏭</button>
+  <input class="scrub" id="scrub" type="range" min="0" max="1000" value="0" aria-label="播放進度">
+  <span class="time" id="time">00:00 / 00:00</span>
+  <button id="ccBtn" type="button" aria-pressed="true">字幕 開</button>
+  <button id="fsBtn" type="button">全螢幕</button>
+</div>
+<nav class="chapters" id="chapters" aria-label="章節"></nav>
+</div>
+
+<audio id="audio" src="narration.mp3" preload="auto"></audio>
+<script src="timeline.js"></script>
+<script>
+(function () {
+  const TL = window.TIMELINE;
+  const RENDER = /[?&]render/.test(location.search) || window.__RENDER === true;
+  if (RENDER) document.body.classList.add('render');
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches && !RENDER;
+
+  const $ = (id) => document.getElementById(id);
+  const stage = $('stage'), viewport = $('viewport'), audio = $('audio');
+  const sceneEls = TL.scenes.map(s => document.querySelector(`.scene[data-scene="${s.id}"]`));
+  const sectionClass = (sec) => sec.startsWith('Part 1') ? 'p1' : sec.startsWith('Part 2') ? 'p2' : sec.startsWith('Part 3') ? 'p3' : sec.includes('案例') ? 'case' : '';
+
+  // 預先整理每場景的進場元素
+  const anims = sceneEls.map((el, si) => {
+    const sc = TL.scenes[si];
+    return [...el.querySelectorAll('[data-in]')].map(node => {
+      const k = node.dataset.in;
+      const base = k === 's' ? sc.start + 0.15 : TL.lines[sc.lines[+k]].start;
+      return { node, t0: base + (+node.dataset.d || 0), fx: node.dataset.fx || 'up', baseT: node.style.transform || '' };
+    });
+  });
+  const hls = sceneEls.map((el, si) => [...el.querySelectorAll('[data-hl]')].map(node => ({ node, ks: node.dataset.hl.split(',').map(Number) })));
+  const floats = sceneEls.map(el => [...el.querySelectorAll('[data-float]')]);
+  const spins = sceneEls.map(el => [...el.querySelectorAll('[data-spin]')]);
+
+  const clamp = (x) => Math.max(0, Math.min(1, x));
+  const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+  const backOut = (p) => { const c = 1.9; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
+
+  function applyFx(a, t) {
+    const p = reduce ? (t >= a.t0 ? 1 : 0) : clamp((t - a.t0) / (a.fx === 'stamp' ? 0.35 : 0.6));
+    const e = easeOut(p), b = backOut(p);
+    let tr = '';
+    switch (a.fx) {
+      case 'pop': tr = `scale(${(0.3 + 0.7 * b).toFixed(3)})`; break;
+      case 'zoom': tr = `scale(${(0.6 + 0.4 * e).toFixed(3)})`; break;
+      case 'left': tr = `translateX(${(-(1 - e) * 70).toFixed(1)}px)`; break;
+      case 'right': tr = `translateX(${((1 - e) * 70).toFixed(1)}px)`; break;
+      case 'stamp': tr = `rotate(-8deg) scale(${(2.2 - 1.2 * e).toFixed(3)})`; break;
+      default: tr = `translateY(${((1 - e) * 28).toFixed(1)}px)`;
+    }
+    a.node.style.opacity = p <= 0 ? 0 : Math.min(1, p * 1.6).toFixed(3);
+    a.node.style.transform = (a.baseT + ' ' + tr).trim();
+  }
+
+  // 角色站位
+  const LAYOUT = {
+    default: { allan: { x: 985, y: 248, s: 1 }, arale: { x: 868, y: 382, s: 0.9 } },
+    hero: { allan: { x: 975, y: 205, s: 1.12 }, arale: { x: 760, y: 262, s: 1.05 } },
+  };
+  const allan = $('allan'), arale = $('arale');
+  const parts = {
+    aArm: $('allanArm'), aEyes: $('allanEyes'), aHead: $('allanHead'), aSmile: $('allanSmile'), aMouth: $('allanMouth'), aMouthO: $('allanMouthO'), aSpot: $('allanSpot'),
+    rArmL: $('araleArmL'), rArmR: $('araleArmR'), rEyes: $('araleEyes'), rHead: $('araleHead'), rSmile: $('araleSmile'), rMouth: $('araleMouth'), rMouthO: $('araleMouthO'), rSpot: $('araleSpot'),
+  };
+  const lerp = (a, b, p) => a + (b - a) * p;
+  function place(el, from, to, p, dy, rot) {
+    const x = lerp(from.x, to.x, p), y = lerp(from.y, to.y, p), s = lerp(from.s, to.s, p);
+    el.style.transform = `translate(${x.toFixed(1)}px, ${(y + dy).toFixed(1)}px) rotate(${rot.toFixed(2)}deg) scale(${s.toFixed(3)})`;
+  }
+  allan.style.left = '0px'; allan.style.top = '0px';
+  arale.style.left = '0px'; arale.style.top = '0px';
+
+  function sceneIndexAt(t) {
+    for (let i = TL.scenes.length - 1; i >= 0; i--) if (t >= TL.scenes[i].start) return i;
+    return 0;
+  }
+  function lineAt(t) {
+    let cur = null;
+    for (const L of TL.lines) { if (L.start <= t) cur = L; else break; }
+    return cur;
+  }
+
+  let lastScene = -1;
+  const subs = $('subs'), subWho = $('subWho'), subTxt = $('subTxt');
+  let ccOn = true;
+
+  function renderAt(t) {
+    const si = sceneIndexAt(t), sc = TL.scenes[si];
+    if (si !== lastScene) {
+      sceneEls.forEach((el, i) => el.classList.toggle('on', i === si));
+      const lab = $('secLabel');
+      lab.textContent = sc.section; lab.className = 'sec ' + sectionClass(sc.section);
+      $('secNum').textContent = String(si + 1).padStart(2, '0') + '/' + String(TL.scenes.length).padStart(2, '0');
+      lastScene = si;
+      markChapter(si);
+    }
+    const local = t - sc.start;
+    sceneEls[si].style.opacity = reduce ? 1 : clamp(local / 0.45).toFixed(3);
+    for (const a of anims[si]) applyFx(a, t);
+
+    const L = lineAt(t);
+    const speaking = L && t < L.start + L.dur ? L : null;
+    const curIdx = L && L.scene === si ? L.i : -1;
+    for (const h of hls[si]) h.node.classList.toggle('hl', h.ks.includes(curIdx) && !!speaking && speaking.scene === si);
+    floats[si].forEach((n, i) => { n.style.transform = `translateY(${(Math.sin(t * 1.3 + i * 2) * 8).toFixed(1)}px)`; });
+    spins[si].forEach(n => { n.style.transform = `rotate(${(t * 40 * (+n.dataset.spin || 1)) % 360}deg)`; });
+
+    // 字幕
+    if (L && t < L.start + L.dur + 0.3 && L.scene === si) {
+      subs.style.visibility = ccOn ? 'visible' : 'hidden';
+      subWho.textContent = L.spk === 'A' ? 'Allan 老師' : '阿拉蕾';
+      subWho.className = 'who ' + L.spk;
+      if (subTxt.textContent !== L.text) subTxt.textContent = L.text;
+    } else subs.style.visibility = 'hidden';
+
+    // 角色站位與動作
+    const layout = LAYOUT[sceneEls[si].dataset.layout || 'default'];
+    const prevLayout = si > 0 ? LAYOUT[sceneEls[si - 1].dataset.layout || 'default'] : layout;
+    const lp = easeOut(clamp(local / 0.8));
+    const aTalk = speaking && speaking.spk === 'A', rTalk = speaking && speaking.spk === 'R';
+    const mo = (seed) => 0.25 + 0.75 * Math.abs(Math.sin(t * 13.7 + seed) * Math.sin(t * 4.3 + seed * 2));
+
+    place(allan, prevLayout.allan, layout.allan, lp, Math.sin(t * 1.8) * 2.5, aTalk ? Math.sin(t * 2.2) * 1.5 : 0);
+    parts.aArm.style.transform = `rotate(${(aTalk ? -14 + Math.sin(t * 3.1) * 14 : 4).toFixed(1)}deg)`;
+    parts.aHead.style.transform = `rotate(${(aTalk ? Math.sin(t * 2.7) * 3 : Math.sin(t * 0.9) * 1.2).toFixed(2)}deg)`;
+    parts.aEyes.style.transform = (t % 3.9) < 0.13 ? 'scaleY(0.12)' : 'scaleY(1)';
+    parts.aSmile.style.display = aTalk ? 'none' : '';
+    parts.aMouth.style.display = aTalk ? '' : 'none';
+    if (aTalk) parts.aMouthO.setAttribute('ry', (2.5 + mo(0.7) * 9).toFixed(1));
+    parts.aSpot.style.opacity = aTalk ? 1 : 0;
+
+    const hop = rTalk ? -Math.abs(Math.sin(t * 6.5)) * 12 : Math.sin(t * 2.4 + 1) * 3;
+    place(arale, prevLayout.arale, layout.arale, lp, hop, rTalk ? Math.sin(t * 5) * 3 : 0);
+    parts.rArmL.style.transform = `rotate(${(rTalk ? 40 + Math.sin(t * 7) * 30 : Math.sin(t * 1.5) * 4).toFixed(1)}deg)`;
+    parts.rArmR.style.transform = `rotate(${(rTalk ? -40 - Math.sin(t * 7 + 1.4) * 30 : -Math.sin(t * 1.5) * 4).toFixed(1)}deg)`;
+    parts.rHead.style.transform = `rotate(${(rTalk ? Math.sin(t * 4) * 5 : 0).toFixed(2)}deg)`;
+    parts.rEyes.style.transform = ((t + 1.7) % 3.3) < 0.13 ? 'scaleY(0.12)' : 'scaleY(1)';
+    parts.rSmile.style.display = rTalk ? 'none' : '';
+    parts.rMouth.style.display = rTalk ? '' : 'none';
+    if (rTalk) { const m = mo(2.1); parts.rMouthO.setAttribute('transform', `translate(100 143) scale(1 ${(0.35 + m * 0.75).toFixed(2)}) translate(-100 -143)`); }
+    parts.rSpot.style.opacity = rTalk ? 1 : 0;
+
+    $('pbar').style.width = (t / TL.duration * 100).toFixed(2) + '%';
+  }
+  window.renderAt = renderAt;
+  window.TL_DURATION = TL.duration;
+
+  // ---------- 縮放舞台 ----------
+  function fit() {
+    const w = viewport.clientWidth;
+    stage.style.transform = `scale(${w / 1280})`;
+  }
+  if (!RENDER) { addEventListener('resize', fit); fit(); if (window.ResizeObserver) new ResizeObserver(fit).observe(viewport); }
+
+  // ---------- 播放控制 ----------
+  const fmt = (s) => { s = Math.max(0, Math.floor(s)); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
+  const chapters = $('chapters');
+  TL.scenes.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = `<small>${fmt(s.start)}・${s.section}</small><span></span>`;
+    b.querySelector('span').textContent = s.title;
+    b.addEventListener('click', () => seek(s.start + 0.01, true));
+    chapters.appendChild(b);
+  });
+  function markChapter(si) { [...chapters.children].forEach((b, i) => b.setAttribute('aria-current', i === si ? 'true' : 'false')); }
+
+  let clock = 0;
+  function now() { return audio.readyState > 0 ? audio.currentTime : clock; }
+  function seek(t, play) {
+    t = Math.max(0, Math.min(TL.duration - 0.05, t));
+    try { audio.currentTime = t; } catch (e) {}
+    clock = t;
+    document.dispatchEvent(new Event('tl-seek'));
+    renderAt(t);
+    if (play) start();
+  }
+  function start() {
+    $('startBtn').hidden = true;
+    audio.play().catch(() => {});
+  }
+  const playBtn = $('play');
+  audio.addEventListener('play', () => { playBtn.textContent = '⏸ 暫停'; $('startBtn').hidden = true; });
+  audio.addEventListener('pause', () => { playBtn.textContent = '▶ 播放'; });
+  playBtn.addEventListener('click', () => audio.paused ? start() : audio.pause());
+  $('startBtn').addEventListener('click', start);
+  $('prev').addEventListener('click', () => { const si = sceneIndexAt(now() - 1.5); seek(TL.scenes[si].start + 0.01, !audio.paused); });
+  $('next').addEventListener('click', () => { const si = Math.min(TL.scenes.length - 1, sceneIndexAt(now()) + 1); seek(TL.scenes[si].start + 0.01, !audio.paused); });
+  const scrub = $('scrub');
+  scrub.addEventListener('input', () => seek(scrub.value / 1000 * TL.duration, false));
+  $('ccBtn').addEventListener('click', (e) => { ccOn = !ccOn; e.currentTarget.textContent = ccOn ? '字幕 開' : '字幕 關'; e.currentTarget.setAttribute('aria-pressed', String(ccOn)); });
+  $('fsBtn').addEventListener('click', () => { const r = viewport.requestFullscreen && viewport.requestFullscreen(); if (r && r.catch) r.catch(() => {}); });
+  document.addEventListener('fullscreenchange', fit);
+  addEventListener('keydown', (e) => {
+    if (e.target.closest && e.target.closest('input, select, textarea')) return;
+    if (e.code === 'Space') { e.preventDefault(); audio.paused ? start() : audio.pause(); }
+    else if (e.code === 'ArrowRight') seek(now() + 5, !audio.paused);
+    else if (e.code === 'ArrowLeft') seek(now() - 5, !audio.paused);
+  });
+
+  if (!RENDER) {
+    let started = false;
+    audio.addEventListener('play', () => { started = true; });
+    document.addEventListener('tl-seek', () => { started = true; });
+    scrub.addEventListener('input', () => { started = true; });
+    const loop = () => {
+      const t = started ? now() : 4.2; // 尚未播放時顯示封面畫面（標題已進場）
+      renderAt(t);
+      if (document.activeElement !== scrub) scrub.value = Math.round((started ? t : 0) / TL.duration * 1000);
+      $('time').textContent = fmt(started ? t : 0) + ' / ' + fmt(TL.duration);
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+})();
+</script>
+</body>
+</html>
